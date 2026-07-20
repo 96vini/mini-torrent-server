@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model FileUpload {
+  id            String            @id @default(uuid())
+  name          String
+  mimeType      String            @map("mime_type")
+  size          BigInt
+  hash          String
+  chunkSize     Int               @map("chunk_size")
+  totalChunks   Int               @map("total_chunks")
+  status        FileUploadStatus  @default(PENDING)
+  storageKey    String?           @map("storage_key")
+  failureReason String?           @map("failure_reason")
+  chunks        FileUploadChunk[]
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  expiresAt     DateTime?         @map("expires_at")
+
+  @@index([status])
+  @@index([hash])
+  @@index([expiresAt])
+  @@map("file_uploads")
+}
+
+model FileUploadChunk {
+  id            String                @id @default(uuid()) @db.Uuid
+  fileUploadId  String                @map("file_upload_id") @db.Uuid
+  index         Int
+  size          Int
+  hash          String
+  status        FileUploadChunkStatus @default(PENDING)
+  storageKey    String?               @map("storage_key")
+  failureReason String?               @map("failure_reason")
+  attempts      Int                   @default(0)
+  uploadedAt    DateTime?             @map("uploaded_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  fileUpload FileUpload @relation(fields: [fileUploadId], references: [id], onDelete: Cascade)
+
+  @@unique([fileUploadId, index])
+  @@index([fileUploadId, status])
+  @@map("file_upload_chunks")
+}
+
+enum FileUploadStatus {
+  PENDING
+  UPLOADING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum FileUploadChunkStatus {
+  PENDING
+  UPLOADING
+  UPLOADED
+  FAILED
+}
