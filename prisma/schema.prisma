@@ -12,6 +12,21 @@ datasource db {
   provider = "postgresql"
 }
 
+model File {
+  id         String @id @default(uuid())
+  name       String
+  mimeType   String @map("mime_type")
+  size       BigInt
+  hash       String
+  storageKey String @unique @map("storage_key")
+  createdAt  String
+
+  upload FileUpload?
+
+  @@index([hash])
+  @@map("files")
+}
+
 model FileUpload {
   id            String            @id @default(uuid())
   name          String
@@ -24,6 +39,8 @@ model FileUpload {
   storageKey    String?           @map("storage_key")
   failureReason String?           @map("failure_reason")
   chunks        FileUploadChunk[]
+  fileId        String?           @unique @map("file_id") @db.Uuid
+  file          File?             @relation(fields: [fileId], references: [id])
   createdAt     DateTime          @default(now()) @map("created_at")
   updatedAt     DateTime          @updatedAt @map("updated_at")
   expiresAt     DateTime?         @map("expires_at")
